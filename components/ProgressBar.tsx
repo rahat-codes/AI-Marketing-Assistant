@@ -13,40 +13,45 @@ interface ModernProgressBarProps {
 
 export const ProgressBar: React.FC<ModernProgressBarProps> = ({ currentStep }) => {
   return (
-    <div className="mb-12">
+    <div className="mb-10 bg-slate-50/70 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800/40 p-6 rounded-2xl">
       <nav aria-label="Progress">
-        <ol role="list" className="flex items-center">
+        <ol role="list" className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-y-4 sm:gap-x-4">
           {steps.map((step, stepIdx) => {
             const stepNumber = stepIdx + 1;
             const isCompleted = currentStep > stepNumber;
             const isCurrent = currentStep === stepNumber;
 
             return (
-              <li key={step.name} className={`relative ${stepIdx !== steps.length - 1 ? 'flex-1' : ''}`}>
-                <>
-                  {/* Connecting Line */}
-                  {stepIdx !== steps.length - 1 ? (
-                    <div className={`absolute left-4 top-4 -ml-px mt-0.5 h-0.5 w-full transition-colors duration-500 ${isCompleted || isCurrent ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}`} aria-hidden="true" />
-                  ) : null}
-                  
-                  <div className="relative flex items-center gap-x-3">
-                    {/* Circle */}
-                    <span className={`h-9 w-9 rounded-full flex items-center justify-center transition-colors duration-500 ${
-                      isCurrent ? 'bg-blue-600 ring-4 ring-blue-100 dark:ring-blue-900/50' : isCompleted ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
-                    }`}>
-                      {isCompleted ? (
-                        <Check className="h-5 w-5 text-white" aria-hidden="true" />
-                      ) : (
-                        <step.icon className={`h-5 w-5 ${isCurrent ? 'text-white' : 'text-gray-500 dark:text-gray-400'}`} aria-hidden="true" />
-                      )}
-                    </span>
-                    {/* Text */}
-                    <span className="flex flex-col">
-                      <span className={`text-sm font-semibold tracking-wide transition-colors duration-500 ${isCurrent ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'}`}>{step.name}</span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">Step {stepNumber}</span>
-                    </span>
+              <li key={step.name} className="flex-1 relative flex items-center">
+                <div className="flex items-center gap-x-4">
+                  {/* Circle Step Bubble */}
+                  <span className={`h-11 w-11 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                    isCurrent 
+                      ? 'bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-600 text-white shadow-lg shadow-blue-500/25 ring-2 ring-blue-500/20' 
+                      : isCompleted 
+                        ? 'bg-blue-600 text-white shadow-sm' 
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200/50 dark:border-slate-700/50'
+                  }`}>
+                    {isCompleted ? (
+                      <Check className="h-5 w-5 text-white" aria-hidden="true" strokeWidth={3} />
+                    ) : (
+                      <step.icon className="h-5 w-5 transition-colors duration-300" aria-hidden="true" />
+                    )}
+                  </span>
+
+                  {/* Caption */}
+                  <span className="flex flex-col">
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest leading-none">Step {stepNumber}</span>
+                    <span className={`text-sm font-extrabold tracking-tight mt-1 transition-colors duration-300 ${isCurrent ? 'text-blue-600 dark:text-blue-400' : 'text-slate-800 dark:text-slate-200'}`}>{step.name}</span>
+                  </span>
+                </div>
+
+                {/* Horizontal Separator Arrow or Line for Desktop */}
+                {stepIdx !== steps.length - 1 ? (
+                  <div className="hidden sm:block flex-1 mx-6 h-0.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden min-w-[2rem]">
+                    <div className={`h-full transition-all duration-500 ${isCompleted ? 'w-full bg-blue-600' : 'w-0'}`} />
                   </div>
-                </>
+                ) : null}
               </li>
             );
           })}

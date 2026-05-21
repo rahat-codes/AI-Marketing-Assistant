@@ -244,15 +244,6 @@ const App: React.FC = () => {
     }
   }, [chatMessages, isChatOpen]);
 
-  // Check for API Key for video on Studio view load
-  useEffect(() => {
-    if (view === AppView.STUDIO && window.aistudio) {
-      window.aistudio.hasSelectedApiKey().then(hasKey => {
-        setHasVideoKey(hasKey);
-      });
-    }
-  }, [view]);
-
   // --- Handlers ---
 
   const handleProfileChange = (field: keyof BusinessProfile, value: string) => {
@@ -371,12 +362,6 @@ const App: React.FC = () => {
 
   const handleGenerateVideo = async () => {
     setVideoError(null);
-    
-    // Check API Key
-    if (window.aistudio && !await window.aistudio.hasSelectedApiKey()) {
-      setHasVideoKey(false);
-      return;
-    }
 
     if (studioTab === 'text-to-video' && !videoPrompt.trim()) {
       setVideoError("Please enter a description for the video.");
@@ -395,21 +380,9 @@ const App: React.FC = () => {
       setGeneratedVideoUrl(url);
     } catch (e: any) {
       console.error(e);
-      if (e?.message?.includes("Requested entity was not found.")) {
-        setVideoError("Your API key appears to be invalid. Please select a valid key and try again.");
-        setHasVideoKey(false);
-      } else {
-        setVideoError("Failed to generate video. Please try again later.");
-      }
+      setVideoError(e?.message || "Failed to generate video. Please try again later.");
     } finally {
       setIsVideoGenerating(false);
-    }
-  };
-
-  const handleSelectKey = async () => {
-    if (window.aistudio) {
-      await window.aistudio.openSelectKey();
-      setHasVideoKey(true);
     }
   };
 
@@ -708,68 +681,86 @@ ${campaign.variant.engagementTips.map(t => '- ' + t).join('\n')}
   // --- Render Functions for Views ---
 
   const renderHome = () => (
-    <div className="relative overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="relative overflow-hidden pt-6">
+      {/* Premium Ambient Background Glows */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[500px] pointer-events-none overflow-hidden opacity-50 dark:opacity-30">
+        <div className="absolute top-12 left-1/4 w-[400px] h-[400px] bg-gradient-to-tr from-blue-400 via-indigo-500 to-purple-500 rounded-full blur-[120px] opacity-15 dark:opacity-20 animate-blob"></div>
+        <div className="absolute top-20 right-1/4 w-[400px] h-[400px] bg-gradient-to-br from-cyan-400 via-sky-500 to-blue-600 rounded-full blur-[120px] opacity-15 dark:opacity-20 animate-blob" style={{ animationDelay: '2s' }}></div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         {/* Hero Section */}
-        <section className="relative pt-16 pb-24 sm:pt-24 sm:pb-32">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
-            <div className="text-center lg:text-left">
-              <span className="inline-block px-4 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-semibold rounded-full text-sm mb-4 animate-fade-in-up">
-                Powered by Gemini AI
+        <section className="relative pt-12 pb-20 sm:pt-16 sm:pb-24">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative z-10">
+            <div className="lg:col-span-7 text-center lg:text-left">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 text-blue-700 dark:text-blue-300 font-bold rounded-xl text-xs tracking-tight uppercase border border-blue-500/10 mb-6 animate-fade-in-up shadow-sm">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-650 dark:bg-blue-400 animate-pulse" />
+                Next-Gen Gemini & Veo AI
               </span>
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 dark:text-white tracking-tighter animate-fade-in-up" style={{ animationDelay: '0.1s', textWrap: 'balance' }}>
-                Effortless Marketing for Your Local Business
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 dark:text-white tracking-tighter leading-[1.08] animate-fade-in-up" style={{ animationDelay: '0.1s', textWrap: 'balance' }}>
+                Create high-performing marketing <span className="bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600 bg-clip-text text-transparent">materials in seconds.</span>
               </h1>
-              <p className="mt-6 max-w-xl mx-auto lg:mx-0 text-lg text-gray-600 dark:text-gray-300 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-                Stop guessing and start growing. Our AI-powered suite generates high-quality social media posts, promotional ideas, and stunning visuals in seconds.
+              <p className="mt-5 max-w-xl mx-auto lg:mx-0 text-base sm:text-lg text-slate-500 dark:text-slate-400 font-medium leading-relaxed animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+                Design professional campaigns, convert customers, and generate engaging high-definition video advertisements. No designer needed. Perfect for local shops, cafes, and modern brands.
               </p>
-              <div className="mt-10 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+              <div className="mt-8 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
                 <button 
                   onClick={() => setView(AppView.CAMPAIGN_STEP_1)}
-                  className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 hover:scale-105 hover:shadow-xl active:scale-95 text-white font-semibold py-4 px-8 rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-200 flex items-center justify-center gap-2"
+                  className="w-full sm:w-auto bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-700 hover:scale-[1.02] active:scale-98 text-white font-bold py-3.5 px-7 rounded-xl shadow-lg hover:shadow-xl dark:shadow-blue-500/20 transition-all duration-300 flex items-center justify-center gap-2"
                 >
-                  Start Your First Campaign
-                  <ArrowRight size={18} />
+                  Start Premium Campaign
+                  <ArrowRight size={16} />
                 </button>
                 <button 
                   onClick={() => setView(AppView.HELP)}
-                  className="w-full sm:w-auto text-gray-600 dark:text-gray-300 font-medium hover:text-gray-900 dark:hover:text-white transition"
+                  className="w-full sm:w-auto bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold py-3.5 px-6 rounded-xl transition-all duration-300 flex items-center justify-center"
                 >
-                  How it works
+                  Explore Documentation
                 </button>
               </div>
               <div className="mt-10 animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
-                 <div className="flex justify-center lg:justify-start -space-x-2">
-                   <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white dark:ring-gray-800" src="https://images.unsplash.com/photo-1491528323818-fdd1f037f42b?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="" />
-                   <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white dark:ring-gray-800" src="https://images.unsplash.com/photo-1550525811-e5869dd03032?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="" />
-                   <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white dark:ring-gray-800" src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2.25&w=256&h=256&q=80" alt="" />
+                 <div className="flex justify-center lg:justify-start -space-x-1.5">
+                   <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white dark:ring-[#0F172A]" src="https://images.unsplash.com/photo-1491528323818-fdd1f037f42b?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="" referrerPolicy="no-referrer" />
+                   <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white dark:ring-[#0F172A]" src="https://images.unsplash.com/photo-1550525811-e5869dd03032?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="" referrerPolicy="no-referrer" />
+                   <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white dark:ring-[#0F172A]" src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2.25&w=256&h=256&q=80" alt="" referrerPolicy="no-referrer" />
                  </div>
-                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                   Join over <span className="font-bold text-gray-700 dark:text-gray-200">1,000+</span> local businesses growing with us.
+                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-2.5 font-semibold">
+                   Trusted by over <span className="font-extrabold text-slate-700 dark:text-slate-300">1,200+ local brands</span> and dynamic enterprises worldwide.
                  </p>
               </div>
             </div>
 
-            <div className="relative animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-              <div className="relative bg-white dark:bg-gray-800 p-2 sm:p-4 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 transform lg:rotate-3 hover:rotate-0 hover:shadow-blue-500/10 dark:hover:shadow-blue-400/10 transition-all duration-500">
+            <div className="lg:col-span-5 relative animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+              <div className="relative bg-white dark:bg-[#1E293B]/90 p-4 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800 transform lg:rotate-2 hover:rotate-0 hover:scale-[1.01] transition-all duration-500">
+                 {/* Live Status indicator label */}
+                 <div className="absolute top-6 right-6 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-extrabold uppercase tracking-wider">
+                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-505 bg-emerald-500 animate-ping"></span>
+                   Live generation demo
+                 </div>
+                 
                  {/* Mock UI Card */}
-                 <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl">
+                 <div className="bg-slate-50/70 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/20">
                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 bg-orange-200 dark:bg-orange-800 rounded-full flex items-center justify-center text-orange-600 dark:text-orange-300"><Coffee size={20} /></div>
+                      <div className="w-10 h-10 bg-orange-100 dark:bg-orange-950/20 rounded-xl flex items-center justify-center text-orange-600 dark:text-orange-400 border border-orange-500/15"><Coffee size={18} /></div>
                       <div>
-                         <h4 className="font-bold text-gray-900 dark:text-white">The Daily Grind</h4>
-                         <p className="text-xs text-gray-500 dark:text-gray-400">Coffee Shop</p>
+                         <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">The Daily Grind Espresso</h4>
+                         <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Local Premium Coffee</p>
                       </div>
                    </div>
-                   <div className="h-40 bg-gray-200 dark:bg-gray-600 rounded-lg mb-4 flex items-center justify-center text-gray-400 dark:text-gray-500">
-                      <ImageIcon size={32} />
+                   <div className="h-44 bg-slate-200/50 dark:bg-slate-850 rounded-xl mb-4 overflow-hidden relative flex items-center justify-center text-slate-400 dark:text-slate-600 group">
+                      <div className="absolute inset-0 bg-cover bg-center opacity-90 transition-all duration-500 group-hover:scale-105" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1507133750040-4a8f57021571?auto=format&fit=crop&w=600&q=80')" }}></div>
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 to-transparent"></div>
+                      <span className="absolute bottom-3 left-3 px-2.5 py-1 rounded-md bg-black/40 backdrop-blur-sm text-[10px] text-white font-bold uppercase tracking-wider flex items-center gap-1">
+                        <Sparkles size={10} /> Output Preview
+                      </span>
                    </div>
-                   <p className="text-sm text-gray-800 dark:text-gray-200">
-                     <strong className="font-bold">Weekend Fuel ☕️✨</strong> Start your weekend right with our signature pour-over...
+                   <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                     <strong className="font-extrabold text-slate-800 dark:text-white text-xs block mb-1">Weekend Fuel is Brewed! ☕️✨</strong> 
+                     Start your cold-brew adventures right with our classic custom pour-over. Handcrafted with love in Seattle center.
                    </p>
                    <div className="flex gap-2 mt-4">
-                      <span className="text-xs bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 px-2 py-1 rounded-md font-medium">#CoffeeLover</span>
-                      <span className="text-xs bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 px-2 py-1 rounded-md font-medium">#LocalBrew</span>
+                      <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-1 rounded-md font-bold uppercase tracking-tight">#CoffeeLover</span>
+                      <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-1 rounded-md font-bold uppercase tracking-tight">#OrganicBeans</span>
                    </div>
                  </div>
               </div>
@@ -778,41 +769,41 @@ ${campaign.variant.engagementTips.map(t => '- ' + t).join('\n')}
         </section>
 
         {/* Features Section */}
-        <section className="py-24">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Everything you need to grow</h2>
-            <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">From AI-powered content to stunning video, all in one place.</p>
+        <section className="py-16 border-t border-slate-100 dark:border-slate-800/40">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Intuitive workflow, beautiful output</h2>
+            <p className="mt-3 text-slate-500 dark:text-slate-400 font-medium">From professional business configurations to automated promotional assets.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div
               onClick={() => setView(AppView.CAMPAIGN_STEP_1)}
-              className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group cursor-pointer"
+              className="bg-white dark:bg-[#1E293B]/70 p-8 rounded-3xl shadow-md hover:shadow-xl border border-slate-100 dark:border-slate-800/30 hover:-translate-y-1 transition-all duration-350 group cursor-pointer"
             >
-              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400 mb-4 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">
-                <Rocket size={24} />
+              <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-400 mb-6 transition-transform duration-350 group-hover:scale-105">
+                <Rocket size={22} />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Content Generation</h3>
-              <p className="text-gray-500 dark:text-gray-400">Generate posts, hashtags, and ideas for Instagram, Facebook, and more.</p>
+              <h3 className="text-lg font-extrabold text-slate-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Campaign Generation</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-semibold">Generate high-performing social posts, custom hashtags, and local ad copy calibrated with artificial intelligence.</p>
             </div>
             <div
               onClick={() => setView(AppView.STUDIO)}
-              className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group cursor-pointer"
+              className="bg-white dark:bg-[#1E293B]/70 p-8 rounded-3xl shadow-md hover:shadow-xl border border-slate-100 dark:border-slate-800/30 hover:-translate-y-1 transition-all duration-350 group cursor-pointer"
             >
-              <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-xl flex items-center justify-center text-orange-600 dark:text-orange-400 mb-4 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
-                <Clapperboard size={24} />
+              <div className="w-12 h-12 bg-purple-50 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center text-purple-600 dark:text-purple-400 mb-6 transition-transform duration-350 group-hover:scale-105">
+                <Clapperboard size={22} />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Video Studio</h3>
-              <p className="text-gray-500 dark:text-gray-400">Turn text prompts and images into stunning videos using Veo AI.</p>
+              <h3 className="text-lg font-extrabold text-slate-900 dark:text-white mb-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">Video Studio</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-semibold">Generate realistic high-definition advertisements and video assets from text prompts and starter images with Veo AI.</p>
             </div>
             <div
               onClick={() => setView(AppView.HISTORY)}
-              className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group cursor-pointer"
+              className="bg-white dark:bg-[#1E293B]/70 p-8 rounded-3xl shadow-md hover:shadow-xl border border-slate-100 dark:border-slate-800/30 hover:-translate-y-1 transition-all duration-350 group cursor-pointer"
             >
-              <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center text-purple-600 dark:text-purple-400 mb-4 transition-transform duration-300 group-hover:scale-110">
-                <LayoutGrid size={24} />
+              <div className="w-12 h-12 bg-cyan-50 dark:bg-cyan-900/30 rounded-2xl flex items-center justify-center text-cyan-600 dark:text-cyan-400 mb-6 transition-transform duration-350 group-hover:scale-105">
+                <LayoutGrid size={22} />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Campaign History</h3>
-              <p className="text-gray-500 dark:text-gray-400">Access saved campaigns, previous drafts, and exported content.</p>
+              <h3 className="text-lg font-extrabold text-slate-900 dark:text-white mb-2 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">History Archives</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-semibold">Maintain a perfect historical archive of generated variants, saved drafts, business parameters, and content ideas.</p>
             </div>
           </div>
         </section>
@@ -824,15 +815,15 @@ ${campaign.variant.engagementTips.map(t => '- ' + t).join('\n')}
     <div className="max-w-3xl mx-auto py-12 px-4 animate-fade-in-up">
       <ProgressBar currentStep={1} />
       
-      <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-8 transition-colors duration-300 border border-gray-100 dark:border-gray-700">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Set Up Your Business Profile</h2>
-          <p className="text-gray-500 dark:text-gray-400">Tell us about your business to personalize your AI marketing assistant.</p>
+      <div className="bg-white dark:bg-[#1E293B]/70 p-8 rounded-3xl border border-slate-100 dark:border-slate-800/40 shadow-xl transition-colors duration-300">
+        <div className="mb-8 border-b border-slate-100 dark:border-slate-800/40 pb-6">
+          <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-1.5">Business Profile Configuration</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-semibold">Provide your unique parameters to train the AI Marketing engine on your brand.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div>
-            <label className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="flex items-center text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2.5">
               Business Name
               <Tooltip text="The official name of your business as it appears to customers." />
             </label>
@@ -840,20 +831,20 @@ ${campaign.variant.engagementTips.map(t => '- ' + t).join('\n')}
               type="text" 
               value={profile.name}
               onChange={(e) => handleProfileChange('name', e.target.value)}
-              placeholder="Enter your business name"
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-gray-50 dark:bg-gray-700 dark:text-white focus:bg-white dark:focus:bg-gray-600"
+              placeholder="e.g., The Daily Grind Espresso"
+              className="w-full px-4 py-3 rounded-xl border border-slate-205 border-slate-200/80 dark:border-slate-800 focus:ring-2 focus:ring-blue-600/10 focus:border-blue-600 outline-none transition-all duration-300 bg-slate-50 dark:bg-slate-900 dark:text-white font-semibold text-sm"
             />
           </div>
           <div>
-            <label className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Business Type
+            <label className="flex items-center text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2.5">
+              Sector / Business Type
               <Tooltip text="The category that best describes what your business does (e.g., Restaurant, Retail)." />
             </label>
             <div className="relative">
               <select 
                 value={profile.type}
                 onChange={(e) => handleProfileChange('type', e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-gray-50 dark:bg-gray-700 dark:text-white focus:bg-white dark:focus:bg-gray-600 appearance-none"
+                className="w-full px-4 py-3 rounded-xl border border-slate-205 border-slate-200/80 dark:border-slate-800 focus:ring-2 focus:ring-blue-600/10 focus:border-blue-600 outline-none transition-all duration-300 bg-slate-50 dark:bg-slate-900 dark:text-white font-semibold text-sm appearance-none cursor-pointer"
               >
                 <option value="" disabled>Select a type</option>
                 <option value="Coffee Shop">Coffee Shop</option>
@@ -862,15 +853,15 @@ ${campaign.variant.engagementTips.map(t => '- ' + t).join('\n')}
                 <option value="Service Provider">Service Provider</option>
                 <option value="Salon/Spa">Salon/Spa</option>
               </select>
-              <ChevronDown className="absolute right-4 top-3.5 text-gray-400 pointer-events-none" size={20} />
+              <ChevronDown className="absolute right-4 top-3.5 text-slate-400 pointer-events-none" size={17} />
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div>
-            <label className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Location
+            <label className="flex items-center text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2.5">
+              Location Hub
               <Tooltip text="Where your business is physically located or the area you serve." />
             </label>
             <div className="flex gap-2">
@@ -880,25 +871,25 @@ ${campaign.variant.engagementTips.map(t => '- ' + t).join('\n')}
                     value={profile.location}
                     onChange={(e) => handleProfileChange('location', e.target.value)}
                     placeholder="e.g., San Francisco, CA"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-gray-50 dark:bg-gray-700 dark:text-white focus:bg-white dark:focus:bg-gray-600"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-205 border-slate-200/80 dark:border-slate-800 focus:ring-2 focus:ring-blue-600/10 focus:border-blue-600 outline-none transition-all duration-300 bg-slate-50 dark:bg-slate-900 dark:text-white font-semibold text-sm"
                     />
                 </div>
                 <button
                     onClick={handleAutoLocation}
                     disabled={isLocating || (!profile.name && !profile.location)}
-                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 rounded-xl transition shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2 min-w-[100px]"
+                    className="bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-700 disabled:bg-slate-100 disabled:dark:bg-slate-800 disabled:text-slate-400 text-white px-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 min-w-[105px] border border-transparent disabled:border-slate-200/50"
                     title="Verify with Google Maps"
                 >
-                    {isLocating ? <Loader2 size={18} className="animate-spin" /> : <MapPin size={18} />}
-                    <span className="font-medium text-sm hidden sm:inline">Auto-Find</span>
+                    {isLocating ? <Loader2 size={16} className="animate-spin" /> : <MapPin size={16} />}
+                    <span className="font-bold text-xs">Auto-Find</span>
                 </button>
             </div>
-            <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-                <MapPin size={10} /> Powered by Gemini Maps Grounding
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 font-semibold font-mono flex items-center gap-1.5 uppercase tracking-wide">
+                <MapPin size={11} className="text-red-500" /> Powered by Gemini Maps Grounding
             </p>
           </div>
           <div>
-            <label className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="flex items-center text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2.5">
               Target Audience
               <Tooltip text="The specific group of people you want to reach (e.g., 'Parents with toddlers', 'Coffee enthusiasts')." />
             </label>
@@ -907,36 +898,36 @@ ${campaign.variant.engagementTips.map(t => '- ' + t).join('\n')}
               value={profile.audience}
               onChange={(e) => handleProfileChange('audience', e.target.value)}
               placeholder="e.g., Young professionals, families"
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-gray-50 dark:bg-gray-700 dark:text-white focus:bg-white dark:focus:bg-gray-600"
+              className="w-full px-4 py-3 rounded-xl border border-slate-205 border-slate-200/80 dark:border-slate-800 focus:ring-2 focus:ring-blue-600/10 focus:border-blue-600 outline-none transition-all duration-300 bg-slate-50 dark:bg-slate-900 dark:text-white font-semibold text-sm"
             />
           </div>
         </div>
 
         <div className="mb-6">
-          <label className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Business Description
+          <label className="flex items-center text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2.5">
+            Business Core Pitch / Description
             <Tooltip text="A brief summary of what your business offers and its unique selling points." />
           </label>
           <textarea 
             value={profile.description}
             onChange={(e) => handleProfileChange('description', e.target.value)}
-            placeholder="Describe what makes your business unique..."
+            placeholder="Describe what makes your business unique, your special ingredients or custom methods..."
             rows={3}
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-gray-50 dark:bg-gray-700 dark:text-white focus:bg-white dark:focus:bg-gray-600 resize-none"
+            className="w-full px-4 py-3 rounded-xl border border-slate-205 border-slate-200/80 dark:border-slate-800 focus:ring-2 focus:ring-blue-600/10 focus:border-blue-600 outline-none transition-all duration-300 bg-slate-50 dark:bg-slate-900 dark:text-white font-semibold text-sm resize-none"
           />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div>
-            <label className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Brand Tone
+            <label className="flex items-center text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2.5">
+              Brand personality / Tone
               <Tooltip text="The personality and style of your communication (e.g., Professional, Friendly, Witty)." />
             </label>
             <div className="relative">
               <select 
                 value={profile.tone}
                 onChange={(e) => handleProfileChange('tone', e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-gray-50 dark:bg-gray-700 dark:text-white focus:bg-white dark:focus:bg-gray-600 appearance-none"
+                className="w-full px-4 py-3 rounded-xl border border-slate-205 border-slate-200/80 dark:border-slate-800 focus:ring-2 focus:ring-blue-600/10 focus:border-blue-600 outline-none transition-all duration-300 bg-slate-50 dark:bg-slate-900 dark:text-white font-semibold text-sm appearance-none cursor-pointer"
               >
                  <option value="" disabled>Select a tone</option>
                  <option value="Friendly">Friendly</option>
@@ -945,11 +936,11 @@ ${campaign.variant.engagementTips.map(t => '- ' + t).join('\n')}
                  <option value="Urgent">Urgent</option>
                  <option value="Luxury">Luxury</option>
               </select>
-              <ChevronDown className="absolute right-4 top-3.5 text-gray-400 pointer-events-none" size={20} />
+              <ChevronDown className="absolute right-4 top-3.5 text-slate-400 pointer-events-none" size={17} />
             </div>
           </div>
           <div>
-            <label className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="flex items-center text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2.5">
               Preferred Language
               <Tooltip text="The language you want the generated content to be in." />
             </label>
@@ -957,24 +948,24 @@ ${campaign.variant.engagementTips.map(t => '- ' + t).join('\n')}
               <select 
                 value={profile.language}
                 onChange={(e) => handleProfileChange('language', e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-gray-50 dark:bg-gray-700 dark:text-white focus:bg-white dark:focus:bg-gray-600 appearance-none"
+                className="w-full px-4 py-3 rounded-xl border border-slate-205 border-slate-200/80 dark:border-slate-800 focus:ring-2 focus:ring-blue-600/10 focus:border-blue-600 outline-none transition-all duration-300 bg-slate-50 dark:bg-slate-900 dark:text-white font-semibold text-sm appearance-none cursor-pointer"
               >
                 {languageOptions.map(lang => (
                   <option key={lang} value={lang}>{lang}</option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-4 top-3.5 text-gray-400 pointer-events-none" size={20} />
+              <ChevronDown className="absolute right-4 top-3.5 text-slate-400 pointer-events-none" size={17} />
             </div>
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-4 border-t border-gray-100 dark:border-gray-700 pt-6">
-          <button className="text-gray-600 dark:text-gray-400 font-medium hover:text-gray-900 dark:hover:text-white transition-colors">Save Profile</button>
+        <div className="flex items-center justify-end gap-3 border-t border-slate-100 dark:border-slate-800/40 pt-6">
+          <button className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white px-4 py-2 rounded-xl transition-all duration-300">Save draft Profile</button>
           <button 
             onClick={() => setView(AppView.CAMPAIGN_STEP_2)}
-            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-95 text-white font-semibold py-3 px-8 rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-200"
+            className="bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-650 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-semibold py-3 px-8 rounded-xl shadow-lg ring-1 ring-blue-500/10 transition-all duration-300"
           >
-            Next
+            Continue setup
           </button>
         </div>
       </div>
@@ -995,46 +986,46 @@ ${campaign.variant.engagementTips.map(t => '- ' + t).join('\n')}
     <div className="max-w-3xl mx-auto py-12 px-4 animate-fade-in-up">
       <ProgressBar currentStep={2} />
       
-      <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-8 transition-colors duration-300 border border-gray-100 dark:border-gray-700">
-        <div className="flex justify-between items-start mb-8">
+      <div className="bg-white dark:bg-[#1E293B]/70 p-8 rounded-3xl border border-slate-100 dark:border-slate-800/40 shadow-xl transition-colors duration-300">
+        <div className="flex justify-between items-center mb-8 border-b border-slate-100 dark:border-slate-800/40 pb-6">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Campaign Details</h2>
-            <p className="text-gray-500 dark:text-gray-400 mt-1">Provide the specifics for this marketing push.</p>
+            <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Campaign Parameters</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 font-semibold mt-1">Refine the target specifications for this AI marketing sprint.</p>
           </div>
           
           <button 
             onClick={handleAutoSuggest}
             disabled={isSuggesting}
-            className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition active:scale-95 disabled:opacity-50"
+            className="bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 text-purple-650 dark:text-purple-400 px-4 py-2.5 rounded-xl font-bold text-xs tracking-tight uppercase flex items-center gap-1.5 transition-all duration-300 active:scale-95 disabled:opacity-50 border border-purple-500/10 shadow-sm"
           >
-            {isSuggesting ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-            AI Suggest
+            {isSuggesting ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+            AI Autocomplete
           </button>
         </div>
 
         <div className="mb-6">
-          <label className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Campaign Type
+          <label className="flex items-center text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2.5">
+            Campaign Objective / Type
             <Tooltip text="The goal of this specific marketing effort (e.g., announcing a sale, educational post)." />
           </label>
           <div className="relative">
             <select 
               value={campaign.type}
               onChange={(e) => handleCampaignChange('type', e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition bg-gray-50 dark:bg-gray-700 dark:text-white focus:bg-white dark:focus:bg-gray-600 appearance-none"
+              className="w-full px-4 py-3 rounded-xl border border-slate-205 border-slate-200/80 dark:border-slate-800 focus:ring-2 focus:ring-blue-600/10 focus:border-blue-600 outline-none transition-all duration-300 bg-slate-50 dark:bg-slate-900 dark:text-white font-semibold text-sm appearance-none cursor-pointer"
             >
               <option value="Promotion">Promotion</option>
               <option value="Announcement">Announcement</option>
               <option value="Event">Event</option>
               <option value="Educational">Educational</option>
             </select>
-            <ChevronDown className="absolute right-4 top-3.5 text-gray-400 pointer-events-none" size={20} />
+            <ChevronDown className="absolute right-4 top-3.5 text-slate-400 pointer-events-none" size={17} />
           </div>
         </div>
 
         <div className="mb-6">
-          <label className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-            Platform(s)
+          <label className="flex items-center text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3.5">
+            Target Channel Platforms
             <Tooltip text="Where you intend to post this content. We'll tailor the format accordingly." />
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -1045,21 +1036,21 @@ ${campaign.variant.engagementTips.map(t => '- ' + t).join('\n')}
                  <button
                    key={p.name}
                    onClick={() => togglePlatform(p.name)}
-                   className={`p-4 rounded-xl border-2 text-center transition-all duration-200 relative group ${
+                   className={`p-4 rounded-2xl border-2 text-center transition-all duration-350 relative group ${
                      isSelected
-                       ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 shadow-lg' 
-                       : 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md'
+                       ? 'bg-blue-50/70 dark:bg-blue-950/40 border-blue-600 shadow-md ring-2 ring-blue-500/10' 
+                       : 'bg-slate-50/50 dark:bg-slate-900/50 border-slate-200/60 dark:border-slate-850 hover:border-slate-350 dark:hover:border-slate-700 hover:shadow-sm'
                    }`}
                  >
-                   <div className="flex justify-center mb-2">
-                      <Icon size={24} className={p.color} />
+                   <div className="flex justify-center mb-2.5">
+                      <Icon size={21} className={p.color} />
                    </div>
-                   <span className={`font-semibold text-sm ${
-                     isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-gray-800 dark:text-gray-200'
+                   <span className={`font-extrabold text-xs tracking-tight ${
+                     isSelected ? 'text-blue-700 dark:text-blue-400' : 'text-slate-700 dark:text-slate-200'
                    }`}>{p.name}</span>
                    {isSelected && (
-                     <div className="absolute top-2 right-2 w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center text-white animate-pop-in">
-                       <CheckCircle size={14} />
+                     <div className="absolute top-2.5 right-2.5 w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center text-white animate-pop-in">
+                       <CheckCircle size={11} />
                      </div>
                    )}
                  </button>
@@ -1069,28 +1060,28 @@ ${campaign.variant.engagementTips.map(t => '- ' + t).join('\n')}
         </div>
 
         <div className="mb-6">
-          <label className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Special Offers / Keywords
+          <label className="flex items-center text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2.5">
+            Special Offers, Terms or Key Phrases
             <Tooltip text="Key phrases, specific deals (like '50% off'), or topics to include in the content." />
           </label>
           <input 
             type="text" 
             value={campaign.keywords}
             onChange={(e) => handleCampaignChange('keywords', e.target.value)}
-            placeholder="e.g., 'BOGO deal', 'Holiday Special', 'new coffee blend'"
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition bg-gray-50 dark:bg-gray-700 dark:text-white focus:bg-white dark:focus:bg-gray-600"
+            placeholder="e.g., 'Buy One Get One Free', 'Holiday Special Offer', 'Seattle Espresso'"
+            className="w-full px-4 py-3 rounded-xl border border-slate-250 border-slate-200/80 dark:border-slate-800 focus:ring-2 focus:ring-blue-600/10 focus:border-blue-600 outline-none transition-all duration-300 bg-slate-50 dark:bg-slate-900 dark:text-white font-semibold text-sm"
           />
-          <p className="mt-2 text-xs text-gray-400">Enter keywords to help the AI generate relevant content.</p>
+          <p className="mt-2 text-[10px] text-slate-400 dark:text-slate-500 font-semibold font-mono uppercase tracking-wide">Enter custom terms to tailor AI output style and target hooks.</p>
         </div>
 
         <div className="mb-8">
-          <div className="flex justify-between mb-2">
-             <label className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300">
-               Post Length
+          <div className="flex justify-between items-center mb-3">
+             <label className="flex items-center text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+               Caption Text Length
                <Tooltip text="How long you want the text captions to be." />
              </label>
-             <span className="text-xs font-semibold text-orange-600 dark:text-orange-400 uppercase">
-               {campaign.length < 33 ? 'Short' : campaign.length > 66 ? 'Long' : 'Medium'}
+             <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest font-mono bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-md">
+               {campaign.length < 33 ? 'Short Capture' : campaign.length > 66 ? 'Long Narrative' : 'Medium Dynamic'}
              </span>
           </div>
           
@@ -1100,27 +1091,27 @@ ${campaign.variant.engagementTips.map(t => '- ' + t).join('\n')}
             max="100" 
             value={campaign.length}
             onChange={(e) => handleCampaignChange('length', parseInt(e.target.value))}
-            className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-orange-500"
+            className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-600 focus:outline-none"
           />
-          <div className="flex justify-between mt-2 text-xs text-gray-400">
-            <span>Short</span>
-            <span>Medium</span>
-            <span>Long</span>
+          <div className="flex justify-between mt-2.5 text-[10px] text-slate-400 dark:text-slate-500 font-bold font-mono uppercase tracking-wider">
+            <span>Compact</span>
+            <span>Balanced</span>
+            <span>Narrative</span>
           </div>
         </div>
 
-        <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-700 pt-6">
+        <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800/40 pt-6">
            <button 
             onClick={() => setView(AppView.CAMPAIGN_STEP_1)}
-            className="text-gray-500 dark:text-gray-400 font-medium hover:text-gray-900 dark:hover:text-white transition-colors"
+            className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white px-4 py-2 rounded-xl transition"
           >
-            Back
+            Back to profile
           </button>
           <button 
             onClick={generateContent}
-            className="bg-gradient-to-r from-orange-500 via-red-500 to-orange-500 bg-[length:200%_100%] hover:animate-shimmer active:scale-95 text-white font-semibold py-3 px-8 rounded-xl shadow-lg shadow-orange-500/30 transition-all duration-200 w-full md:w-auto"
+            className="bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-700 active:scale-98 text-white font-bold py-3.5 px-8 rounded-xl shadow-lg dark:shadow-blue-500/20 transition-all duration-300 w-full md:w-auto"
           >
-            Generate Marketing Content
+            Generate Marketing Materials
           </button>
         </div>
       </div>
@@ -1132,80 +1123,81 @@ ${campaign.variant.engagementTips.map(t => '- ' + t).join('\n')}
     <div className="max-w-6xl mx-auto py-12 px-4 animate-fade-in-up">
       <ProgressBar currentStep={3} />
 
-      <div className="text-center mb-8">
-         <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white mb-2 tracking-tight">Your AI-Generated Marketing Content</h1>
-          <p className="text-lg text-gray-500 dark:text-gray-400">Review your options, generate visuals, and share your campaign.</p>
+      <div className="text-center mb-10">
+         <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white mb-2 tracking-tight">AI Generated Campaigns</h1>
+         <p className="text-slate-500 dark:text-slate-400 font-semibold text-sm">Review your options, generate custom visual assets, and deploy to your channels.</p>
       </div>
 
       {isGenerating ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-pulse">
            {[1, 2, 3].map(i => (
-             <div key={i} className="bg-white dark:bg-gray-800 rounded-3xl p-6 h-96 shadow-lg border border-gray-100 dark:border-gray-700 flex flex-col gap-4">
-               <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
-               <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
-               <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
-               <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-5/6"></div>
+             <div key={i} className="bg-white dark:bg-[#1E293B]/70 rounded-3xl p-6 h-96 shadow-lg border border-slate-100 dark:border-slate-800/40 flex flex-col gap-4">
+               <div className="h-6 bg-slate-200/50 dark:bg-slate-805 dark:bg-slate-800 rounded w-3/4"></div>
+               <div className="h-4 bg-slate-200/50 dark:bg-slate-805 dark:bg-slate-800 rounded w-full"></div>
+               <div className="h-4 bg-slate-200/50 dark:bg-slate-805 dark:bg-slate-800 rounded w-full"></div>
+               <div className="h-4 bg-slate-200/50 dark:bg-slate-805 dark:bg-slate-800 rounded w-5/6"></div>
                <div className="flex-1"></div>
-               <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded-xl w-full"></div>
+               <div className="h-10 bg-slate-200/50 dark:bg-slate-805 dark:bg-slate-800 rounded-xl w-full"></div>
              </div>
            ))}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {generatedVariants.map((variant, idx) => (
-            <div key={idx} className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl overflow-hidden flex flex-col border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
+            <div key={idx} className="bg-white dark:bg-[#1E293B]/70 rounded-3xl shadow-md overflow-hidden flex flex-col border border-slate-100 dark:border-slate-800/40 hover:shadow-xl transition-all duration-350 hover:-translate-y-1">
               <div className="p-6 flex-1">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Variant {idx + 1}</span>
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800/30">
+                  <span className="text-[10px] font-mono font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-blue-900/25 px-2.5 py-1 rounded-lg">Option {idx + 1}</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
                 </div>
                 
-                <div className="mb-4">
-                   <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Headline</h3>
-                   <p className="text-gray-800 dark:text-gray-200 font-medium">{variant.headline}</p>
+                <div className="mb-5 bg-slate-50/50 dark:bg-slate-900/30 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800/10">
+                   <h3 className="text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5">Headline Hook</h3>
+                   <p className="text-sm text-slate-900 dark:text-white font-extrabold leading-snug">{variant.headline}</p>
                 </div>
 
-                <div className="mb-4">
-                  <h3 className="text-xs font-bold text-gray-400 uppercase mb-1">Post Copy</h3>
-                  <p className="text-gray-600 dark:text-gray-300 text-sm whitespace-pre-line leading-relaxed">{variant.postCopy}</p>
+                <div className="mb-5">
+                  <h3 className="text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Post Copy Draft</h3>
+                  <p className="text-slate-600 dark:text-slate-300 text-xs whitespace-pre-line leading-relaxed font-semibold">{variant.postCopy}</p>
                 </div>
 
-                <div className="mb-4">
-                   <h3 className="text-xs font-bold text-gray-400 uppercase mb-2">Recommended Hashtags</h3>
-                   <div className="flex flex-wrap gap-2">
+                <div className="mb-5">
+                   <h3 className="text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Hashtags</h3>
+                   <div className="flex flex-wrap gap-1.5">
                      {variant.hashtags.map(tag => (
-                       <span key={tag} className="bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 text-xs px-2 py-1 rounded-md font-medium hover:scale-105 transition-transform cursor-default">
+                       <span key={tag} className="bg-slate-100 dark:bg-slate-850 text-slate-600 dark:text-slate-400 text-[10px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider hover:scale-105 transition-transform cursor-default">
                          {tag}
                        </span>
                      ))}
                    </div>
                 </div>
                 
-                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl mb-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-2">
-                      <h3 className="text-xs font-bold text-blue-800 dark:text-blue-300 uppercase">Visual Idea</h3>
-                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="bg-blue-50/40 dark:bg-blue-950/20 p-4 rounded-2xl mb-5 border border-blue-550/5 dark:border-blue-500/10">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2.5 gap-2">
+                      <h3 className="text-[10px] font-mono font-bold text-blue-800 dark:text-blue-400 uppercase tracking-wider">Visual Asset Prompt</h3>
+                      <div className="flex items-center gap-1.5 w-full sm:w-auto">
                         <input 
                             type="text" 
                             placeholder="Style (e.g. Cinematic)" 
-                            className="text-xs px-2 py-1 rounded border border-blue-200 dark:border-blue-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 w-full sm:w-32 focus:ring-2 focus:ring-blue-500 outline-none"
+                            className="text-[11px] px-2.5 py-1 rounded-lg border border-blue-200 dark:border-blue-900/50 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-250 w-full sm:w-28 focus:ring-2 focus:ring-blue-600/20 outline-none font-bold"
                             value={imageStyles[idx] || ''}
                             onChange={(e) => setImageStyles(prev => ({...prev, [idx]: e.target.value}))}
                         />
                         <button 
                             onClick={() => handleGenerateImage(idx, variant.visualIdea, imageStyles[idx] || '')}
                             disabled={generatingImgIdx === idx}
-                            className="text-xs bg-blue-600 hover:bg-blue-700 active:scale-95 text-white px-2 py-1 rounded transition disabled:opacity-50 flex items-center gap-1 shrink-0"
+                            className="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white p-1.5 rounded-lg transition disabled:opacity-50 flex items-center gap-1 shrink-0"
+                            title="Generate image from prompt"
                         >
-                            {generatingImgIdx === idx ? <Loader2 size={12} className="animate-spin" /> : <ImageIcon size={12} />}
-                            {generatingImgIdx === idx ? 'Creating...' : 'Generate'}
+                            {generatingImgIdx === idx ? <Loader2 size={13} className="animate-spin" /> : <ImageIcon size={13} />}
                         </button>
                       </div>
                     </div>
-                    <p className="text-blue-700 dark:text-blue-200 text-xs italic mb-3">{variant.visualIdea}</p>
+                    <p className="text-slate-500 dark:text-slate-400 text-[11px] font-medium leading-relaxed mb-3.5 italic">"{variant.visualIdea}"</p>
                     
                     {/* Generated Image Display */}
                     {generatedImages[idx] && (
-                      <div className="mt-2 relative group rounded-lg overflow-hidden border border-blue-200 dark:border-blue-700 shadow-sm animate-pop-in">
+                      <div className="mt-2 relative group rounded-xl overflow-hidden border border-blue-200/50 dark:border-blue-900/50 shadow-sm animate-pop-in">
                          <img src={generatedImages[idx]} alt="AI Generated Visual" className="w-full h-auto object-cover" />
                          <button 
                            onClick={() => {
@@ -1216,79 +1208,82 @@ ${campaign.variant.engagementTips.map(t => '- ' + t).join('\n')}
                              link.click();
                              document.body.removeChild(link);
                            }}
-                           className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm"
+                           className="absolute top-2.5 right-2.5 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm"
                            title="Download Image"
                          >
-                           <Download size={18} />
+                           <Download size={14} />
                          </button>
                       </div>
                     )}
                 </div>
 
-                 <div>
-                    <h3 className="text-xs font-bold text-gray-400 uppercase mb-1">Engagement Tips</h3>
-                    <ul className="list-disc list-inside text-gray-500 dark:text-gray-400 text-xs">
+                 <div className="mb-2">
+                    <h3 className="text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Strategy Recommendations</h3>
+                    <ul className="space-y-1 list-none text-slate-500 dark:text-slate-400 text-[11px] font-semibold">
                       {variant.engagementTips.map((tip, i) => (
-                        <li key={i}>{tip}</li>
+                        <li key={i} className="flex items-start gap-1.5">
+                          <CheckCircle size={12} className="text-indigo-500 mt-0.5" />
+                          <span>{tip}</span>
+                        </li>
                       ))}
                     </ul>
                 </div>
               </div>
               
               {/* Social Share Buttons */}
-              <div className="px-6 pb-2 flex items-center justify-end gap-2 border-t border-gray-50 dark:border-gray-700 pt-4">
-                <span className="text-xs font-bold text-gray-400 uppercase mr-1">Share:</span>
+              <div className="px-6 pb-3 flex items-center justify-end gap-2 border-t border-slate-50 dark:border-slate-800/40 pt-4">
+                <span className="text-[10px] font-mono font-bold text-slate-400 uppercase mr-1">Direct Share:</span>
                 
                 <button 
                   onClick={() => handleShare('twitter', variant)} 
-                  className="p-2 bg-sky-50 dark:bg-sky-900/20 hover:bg-sky-100 dark:hover:bg-sky-900/40 text-sky-500 dark:text-sky-400 rounded-full transition hover:scale-110" 
+                  className="p-2 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg transition hover:scale-105" 
                   title="Share to Twitter"
                 >
-                  <Twitter size={16} />
+                  <Twitter size={15} />
                 </button>
 
                 <button 
                   onClick={() => handleShare('facebook', variant)} 
-                  className="p-2 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-full transition hover:scale-110" 
+                  className="p-2 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg transition hover:scale-105" 
                   title="Copy & Open Facebook"
                 >
-                  <Facebook size={16} />
+                  <Facebook size={15} />
                 </button>
 
                 <button 
                   onClick={() => handleShare('instagram', variant)} 
-                  className="p-2 bg-pink-50 dark:bg-pink-900/20 hover:bg-pink-100 dark:hover:bg-pink-900/40 text-pink-600 dark:text-pink-400 rounded-full transition hover:scale-110" 
+                  className="p-2 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg transition hover:scale-105" 
                   title="Copy & Open Instagram"
                 >
-                  <Instagram size={16} />
+                  <Instagram size={15} />
                 </button>
 
                 {typeof navigator !== 'undefined' && navigator.share && (
                    <button 
                     onClick={() => handleShare('webshare', variant)} 
-                    className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-full transition hover:scale-110" 
+                    className="p-2 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg transition hover:scale-105" 
                     title="Share via..."
                   >
-                     <Share2 size={16} />
+                     <Share2 size={15} />
                    </button>
                 )}
               </div>
 
-              <div className="p-4 bg-gray-50 dark:bg-gray-700/50 flex justify-between items-center gap-2">
+              <div className="p-4 bg-slate-50/70 dark:bg-slate-900/60 flex justify-between items-center gap-1.5 border-t border-slate-100 dark:border-slate-800/40">
                 <button 
                   onClick={() => handleCopyContent(variant)}
-                  className="flex items-center gap-1 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-sm font-medium px-3 py-2 hover:bg-white dark:hover:bg-gray-700 rounded-lg transition active:scale-95"
+                  className="flex items-center gap-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-xs font-bold uppercase tracking-wider px-3 py-2 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition active:scale-95"
                 >
-                  <Copy size={16} /> Copy
+                  <Copy size={14} /> Copy
                 </button>
-                 <button onClick={generateContent} className="flex items-center gap-1 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-sm font-medium px-3 py-2 hover:bg-white dark:hover:bg-gray-700 rounded-lg transition active:scale-95">
-                  <RefreshCw size={16} /> Regen
+                 <button onClick={generateContent} className="flex items-center gap-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-xs font-bold uppercase tracking-wider px-3 py-2 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition active:scale-95">
+                  <RefreshCw size={14} className="animate-spin-hover" /> Re-Draft
                 </button>
                  <button 
                   onClick={() => handleSaveCampaign(variant)}
-                  className="flex items-center gap-1 bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-sm font-medium px-4 py-2 rounded-lg shadow-md shadow-orange-200 dark:shadow-none transition"
+                  className="flex items-center gap-1.5 bg-blue-650 hover:bg-blue-700 active:scale-95 text-white text-xs font-bold uppercase tracking-wider px-4 py-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-300"
                  >
-                  <Save size={16} /> Save
+                  <Save size={14} /> Save Draft
                 </button>
               </div>
             </div>
@@ -1300,36 +1295,20 @@ ${campaign.variant.engagementTips.map(t => '- ' + t).join('\n')}
 
   const renderStudio = () => (
     <div className="max-w-4xl mx-auto py-8 px-4 animate-fade-in-up">
-       <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white mb-2 tracking-tight">Creative Studio</h1>
-       <p className="text-gray-500 dark:text-gray-400 mb-8">Create stunning videos for your social media using Veo AI.</p>
+       <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white mb-2 tracking-tight">Creative Video Studio</h1>
+       <p className="text-slate-500 dark:text-slate-400 font-semibold text-sm mb-8">Generate high-definition social advertisements and promotional loops using Veo AI.</p>
 
-       {!hasVideoKey && (
-         <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 p-6 rounded-2xl mb-8 flex flex-col items-center text-center animate-pop-in">
-            <h3 className="text-lg font-bold text-yellow-800 dark:text-yellow-200 mb-2">API Key Required</h3>
-            <p className="text-yellow-700 dark:text-yellow-300 mb-4">To use Veo video generation, you need to select a verified API key.</p>
-            <button 
-              onClick={handleSelectKey}
-              className="bg-yellow-600 hover:bg-yellow-700 active:scale-95 text-white px-6 py-2 rounded-lg font-medium transition"
-            >
-              Select API Key
-            </button>
-            <div className="mt-4 text-xs text-yellow-600 dark:text-yellow-400">
-               <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noreferrer" className="underline hover:text-yellow-800 dark:hover:text-yellow-200">View billing documentation</a>
-            </div>
-         </div>
-       )}
-
-       <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
-          <div className="flex border-b border-gray-100 dark:border-gray-700">
+       <div className="bg-white dark:bg-[#1E293B]/70 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-800/30 overflow-hidden">
+          <div className="flex border-b border-slate-100 dark:border-slate-800/40 bg-slate-50/40 dark:bg-slate-900/30">
              <button 
                onClick={() => setStudioTab('text-to-video')}
-               className={`flex-1 py-4 font-semibold text-sm transition ${studioTab === 'text-to-video' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
+               className={`flex-1 py-4 font-bold text-xs tracking-wider uppercase transition-all duration-300 ${studioTab === 'text-to-video' ? 'bg-white dark:bg-[#1E293B]/40 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200'}`}
              >
                Text to Video
              </button>
              <button 
                onClick={() => setStudioTab('image-to-video')}
-               className={`flex-1 py-4 font-semibold text-sm transition ${studioTab === 'image-to-video' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
+               className={`flex-1 py-4 font-bold text-xs tracking-wider uppercase transition-all duration-300 ${studioTab === 'image-to-video' ? 'bg-white dark:bg-[#1E293B]/40 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200'}`}
              >
                Image to Video
              </button>
@@ -1338,22 +1317,22 @@ ${campaign.variant.engagementTips.map(t => '- ' + t).join('\n')}
           <div className="p-8">
              {studioTab === 'image-to-video' && (
                <div className="mb-6 animate-fade-in-up">
-                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Upload Image</label>
-                 <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-6 flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-700/50 transition hover:border-blue-400 dark:hover:border-blue-500">
+                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2.5">Upload Starter Image</label>
+                 <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-6 flex flex-col items-center justify-center bg-slate-50/50 dark:bg-slate-900/30 transition hover:border-blue-500">
                    {videoImage ? (
                      <div className="relative w-full max-h-64 flex justify-center">
-                       <img src={videoImage} alt="Preview" className="max-h-64 rounded-lg shadow-md" />
+                       <img src={videoImage} alt="Preview" className="max-h-64 rounded-xl shadow-md border border-slate-100 dark:border-slate-800" />
                        <button 
                          onClick={() => setVideoImage(null)}
-                         className="absolute top-2 right-2 bg-white dark:bg-gray-800 p-1 rounded-full shadow text-gray-600 dark:text-gray-300 hover:text-red-500 transition"
+                         className="absolute top-2.5 right-2.5 bg-white dark:bg-slate-900 p-1.5 rounded-full shadow-md text-slate-600 dark:text-slate-300 hover:text-red-500 transition"
                        >
-                         <X size={16} />
+                         <X size={15} />
                        </button>
                      </div>
                    ) : (
-                     <label className="cursor-pointer flex flex-col items-center">
-                       <Upload size={32} className="text-gray-400 mb-2" />
-                       <span className="text-sm text-gray-500 dark:text-gray-400">Click to upload image</span>
+                     <label className="cursor-pointer flex flex-col items-center p-4">
+                       <Upload size={28} className="text-slate-400 dark:text-slate-500 mb-2.5" />
+                       <span className="text-xs text-slate-500 dark:text-slate-450 font-semibold">Drop or click to upload starter frame</span>
                        <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                      </label>
                    )}
@@ -1362,33 +1341,33 @@ ${campaign.variant.engagementTips.map(t => '- ' + t).join('\n')}
              )}
 
              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {studioTab === 'text-to-video' ? 'Prompt' : 'Prompt (Optional)'}
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3 text-left">
+                  {studioTab === 'text-to-video' ? 'AI Video Prompt' : 'AI Modification Prompt (Optional)'}
                 </label>
                 <textarea 
                   value={videoPrompt}
                   onChange={(e) => setVideoPrompt(e.target.value)}
-                  placeholder={studioTab === 'text-to-video' ? "Describe the video you want to create..." : "Describe how to animate the image..."}
+                  placeholder={studioTab === 'text-to-video' ? "Describe the promotional video dynamic, transitions and mood..." : "Describe how you want this starter image to shift or animate..."}
                   rows={3}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-gray-50 dark:bg-gray-700 dark:text-white focus:bg-white dark:focus:bg-gray-600 resize-none"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-205 border-slate-200/80 dark:border-slate-800 focus:ring-2 focus:ring-blue-600/10 focus:border-blue-600 outline-none transition-all duration-300 bg-slate-50 dark:bg-slate-900 dark:text-white font-semibold text-sm resize-none"
                 />
              </div>
 
              <div className="mb-8">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Aspect Ratio</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3 text-left">Canvas Aspect Ratio</label>
                 <div className="flex gap-4">
                   <button 
                     onClick={() => setVideoAspectRatio('16:9')}
-                    className={`flex-1 py-3 px-4 rounded-xl border transition active:scale-95 flex items-center justify-center gap-2 ${videoAspectRatio === '16:9' ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 text-blue-700 dark:text-blue-300' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}
+                    className={`flex-1 py-3 px-4 rounded-xl border-2 transition-all duration-300 active:scale-98 flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-tight ${videoAspectRatio === '16:9' ? 'bg-blue-50/70 dark:bg-blue-950/20 border-blue-650 dark:border-blue-500 text-blue-700 dark:text-blue-400 ring-2 ring-blue-550/5' : 'border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/30 text-slate-400 dark:text-slate-550'}`}
                   >
-                    <div className="w-6 h-3.5 border-2 border-current rounded-sm"></div>
+                    <div className="w-5 h-3 border border-current rounded-sm"></div>
                     Landscape (16:9)
                   </button>
                   <button 
                     onClick={() => setVideoAspectRatio('9:16')}
-                    className={`flex-1 py-3 px-4 rounded-xl border transition active:scale-95 flex items-center justify-center gap-2 ${videoAspectRatio === '9:16' ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 text-blue-700 dark:text-blue-300' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}
+                    className={`flex-1 py-3 px-4 rounded-xl border-2 transition-all duration-300 active:scale-98 flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-tight ${videoAspectRatio === '9:16' ? 'bg-blue-50/70 dark:bg-blue-950/20 border-blue-650 dark:border-blue-500 text-blue-700 dark:text-blue-400 ring-2 ring-blue-550/5' : 'border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/30 text-slate-400 dark:text-slate-550'}`}
                   >
-                    <div className="w-3.5 h-6 border-2 border-current rounded-sm"></div>
+                    <div className="w-3 h-5 border border-current rounded-sm"></div>
                     Portrait (9:16)
                   </button>
                 </div>
@@ -1403,34 +1382,34 @@ ${campaign.variant.engagementTips.map(t => '- ' + t).join('\n')}
              <button 
                onClick={handleGenerateVideo}
                disabled={isVideoGenerating || !hasVideoKey}
-               className="w-full bg-gradient-to-r from-blue-600 via-indigo-500 to-blue-600 bg-[length:200%_100%] hover:animate-shimmer active:scale-95 text-white font-semibold py-4 rounded-xl shadow-lg shadow-blue-500/30 transition disabled:opacity-50 flex items-center justify-center gap-2"
+               className="w-full bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-700 active:scale-98 text-white font-bold py-3.5 rounded-xl shadow-lg dark:shadow-blue-500/20 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50"
              >
                {isVideoGenerating ? (
                  <>
-                   <Loader2 size={20} className="animate-spin" />
-                   Generating Video (this may take a minute)...
+                   <Loader2 size={16} className="animate-spin" />
+                   <span className="text-xs uppercase tracking-wider">Generating Video Clip (polling status)...</span>
                  </>
                ) : (
                  <>
-                   <Clapperboard size={20} />
-                   Generate Video
+                   <Clapperboard size={15} />
+                   <span className="text-xs uppercase tracking-wider">Render Ads Video</span>
                  </>
                )}
              </button>
 
              {generatedVideoUrl && (
                <div className="mt-8 animate-pop-in">
-                 <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Generated Video</h3>
-                 <div className="rounded-xl overflow-hidden shadow-2xl border border-gray-200 dark:border-gray-700 bg-black">
-                   <video src={generatedVideoUrl} controls className="w-full max-h-[500px] mx-auto" />
+                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-4 text-left">Generated Master Video</h3>
+                 <div className="rounded-2xl overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 bg-black">
+                   <video src={generatedVideoUrl} controls className="w-full max-h-[480px] mx-auto" />
                  </div>
                  <div className="mt-4 flex justify-end">
                     <a 
                       href={generatedVideoUrl} 
                       download="generated-video.mp4"
-                      className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-medium hover:underline"
+                      className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-bold text-xs uppercase tracking-wider hover:underline"
                     >
-                      <Save size={18} /> Download Video
+                      <Save size={14} /> Download Video Mp4
                     </a>
                  </div>
                </div>
@@ -1444,13 +1423,13 @@ ${campaign.variant.engagementTips.map(t => '- ' + t).join('\n')}
     return (
     <div className="max-w-6xl mx-auto py-8 px-4 animate-fade-in-up">
        <div className="flex items-center justify-between mb-8">
-         <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">Saved Campaigns</h1>
-         <button onClick={() => setView(AppView.CAMPAIGN_STEP_1)} className="bg-orange-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-orange-600 active:scale-95 transition-all duration-200 flex items-center gap-2 shadow-lg shadow-orange-200 dark:shadow-none">
-           <span className="text-xl">+</span> New Campaign
+         <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Campaign History</h1>
+         <button onClick={() => setView(AppView.CAMPAIGN_STEP_1)} className="bg-blue-650 text-white text-xs font-bold uppercase tracking-wider px-5 py-3 rounded-xl hover:bg-blue-700 hover:shadow-md transition duration-300 flex items-center gap-1.5 shadow shadow-blue-500/10">
+           <span className="text-sm font-bold">+</span> New Campaign
          </button>
        </div>
 
-       <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm mb-4 flex flex-col md:flex-row gap-4 items-center justify-between border border-gray-100 dark:border-gray-700">
+       <div className="bg-white dark:bg-[#1E293B]/70 p-4 rounded-2xl shadow-sm mb-4 flex flex-col md:flex-row gap-4 items-center justify-between border border-slate-100 dark:border-slate-800/40">
           <div className="relative w-full md:w-96">
              <Search className="absolute left-3 top-3.5 text-gray-400" size={20} />
              <input 
@@ -1458,16 +1437,16 @@ ${campaign.variant.engagementTips.map(t => '- ' + t).join('\n')}
                value={historySearch}
                onChange={(e) => setHistorySearch(e.target.value)}
                placeholder="Search saved campaigns..." 
-               className="w-full pl-10 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-700 border-none focus:ring-2 focus:ring-orange-200 dark:focus:ring-orange-500/50 outline-none text-gray-900 dark:text-white placeholder-gray-500 transition" 
+               className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800/40 focus:ring-2 focus:ring-blue-600/10 focus:border-blue-650 outline-none text-slate-900 dark:text-white placeholder-slate-400 font-semibold text-xs transition" 
              />
           </div>
           <div className="flex gap-2">
-             <button className="p-2 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-lg hover:scale-105 transition"><LayoutGrid size={20} /></button>
-             <button className="p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg hover:scale-105 transition"><List size={20} /></button>
+             <button className="p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg hover:scale-105 transition duration-300"><LayoutGrid size={16} /></button>
+             <button className="p-2 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg hover:scale-105 transition duration-300"><List size={16} /></button>
           </div>
        </div>
 
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-4 mb-6 p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-4 mb-6 p-4 bg-white dark:bg-[#1E293B]/70 rounded-2xl border border-slate-100 dark:border-slate-800/40 shadow-sm animate-none">
         <div className="flex items-center gap-2">
           <CalendarIcon size={16} className="text-gray-400" />
           <span className="text-sm font-medium text-gray-600 dark:text-gray-300">From:</span>
@@ -1510,7 +1489,7 @@ ${campaign.variant.engagementTips.map(t => '- ' + t).join('\n')}
         </div>
         <button 
           onClick={() => { setHistoryStartDate(''); setHistoryEndDate(''); }}
-          className="text-sm text-orange-600 dark:text-orange-400 hover:underline"
+          className="text-xs font-bold text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition"
         >
           Clear Dates
         </button>
@@ -1522,16 +1501,16 @@ ${campaign.variant.engagementTips.map(t => '- ' + t).join('\n')}
            <button 
             key={filter} 
             onClick={() => setHistoryFilter(filter)}
-            className={`px-5 py-2 rounded-full text-sm whitespace-nowrap transition active:scale-95 ${historyFilter === filter ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 font-semibold' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'}`}>
+            className={`px-4.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-300 active:scale-95 ${historyFilter === filter ? 'bg-blue-50 dark:bg-blue-900/25 text-blue-600 dark:text-blue-400' : 'bg-white dark:bg-[#1E293B]/70 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200/50 dark:border-slate-800/40'}`}>
              {filter}
            </button>
          ))}
        </div>
 
        {displayedHistory.length === 0 ? (
-         <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
-           <p className="text-gray-500 dark:text-gray-400">No campaigns found matching your criteria.</p>
-           <button onClick={() => { setHistorySearch(''); setHistoryFilter('All'); }} className="mt-4 text-orange-500 font-medium hover:underline">Clear filters</button>
+         <div className="text-center py-20 bg-white dark:bg-[#1E293B]/70 rounded-3xl border border-slate-100 dark:border-slate-800/40">
+           <p className="text-slate-400 dark:text-slate-500 text-sm font-semibold">No campaigns found matching your criteria.</p>
+           <button onClick={() => { setHistorySearch(''); setHistoryFilter('All'); }} className="mt-3 text-blue-600 dark:text-blue-400 text-xs font-bold uppercase tracking-wider hover:underline">Clear Filters</button>
          </div>
        ) : (
        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1539,19 +1518,24 @@ ${campaign.variant.engagementTips.map(t => '- ' + t).join('\n')}
             <div 
               key={item.id} 
               onClick={() => setSelectedCampaign(item)}
-              className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6 hover:shadow-xl transition-all duration-300 cursor-pointer group hover:-translate-y-1"
+              className="bg-white dark:bg-[#1E293B]/70 rounded-3xl border border-slate-100 dark:border-slate-800/40 p-6 hover:shadow-xl transition-all duration-300 cursor-pointer group hover:-translate-y-1 flex flex-col justify-between"
             >
-               <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-1 truncate">{item.title}</h3>
-               <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">Generated: {item.date}</p>
+               <div>
+                  <div className="flex justify-between items-start gap-1 pb-3 mb-4 border-b border-slate-100 dark:border-slate-800/20">
+                     <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wildest">{item.date}</span>
+                     <div className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700" />
+                  </div>
+                  <h3 className="font-extrabold text-sm text-slate-900 dark:text-white mb-2 leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">{item.title}</h3>
+               </div>
                
-               <div className="flex items-center justify-between pt-4 border-t border-gray-50 dark:border-gray-700">
-                 <div className="flex gap-2">
+               <div className="flex items-center justify-between pt-4 border-t border-slate-50/40 dark:border-slate-800/20 mt-4">
+                 <div className="flex gap-1.5 items-center">
                    <PlatformIconDisplay iconName={item.platformIcon} />
-                   <span className="text-xs font-medium px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-md text-gray-500 dark:text-gray-400">{item.type}</span>
+                   <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 bg-slate-100 dark:bg-slate-850 rounded-md text-slate-500 dark:text-slate-400">{item.type}</span>
                  </div>
-                 <div className="flex gap-3 text-gray-400 opacity-0 group-hover:opacity-100 transition">
-                    <Sparkles size={18} className="hover:text-orange-500" />
-                    <Copy size={18} className="hover:text-blue-500" />
+                 <div className="flex gap-2 text-slate-400 opacity-0 group-hover:opacity-100 transition duration-300">
+                    <Sparkles size={14} className="hover:text-blue-500" />
+                    <Copy size={14} className="hover:text-indigo-500" />
                  </div>
                </div>
             </div>
@@ -1561,90 +1545,92 @@ ${campaign.variant.engagementTips.map(t => '- ' + t).join('\n')}
 
        {/* Modal for Viewing Campaign Details */}
        {selectedCampaign && (
-         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-           <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto flex flex-col relative animate-pop-in">
+         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+           <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto flex flex-col relative animate-pop-in border border-slate-100 dark:border-slate-800/40">
               
               {/* Modal Header */}
-              <div className="sticky top-0 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center z-10">
+              <div className="sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-6 border-b border-slate-100 dark:border-slate-800/30 flex justify-between items-center z-10">
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">{selectedCampaign.title}</h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Saved on {selectedCampaign.date} • {selectedCampaign.type}</p>
+                  <h2 className="text-lg font-extrabold text-slate-900 dark:text-white tracking-tight leading-snug">{selectedCampaign.title}</h2>
+                  <p className="text-xs font-semibold text-slate-400 dark:text-slate-500">Saved on {selectedCampaign.date} • {selectedCampaign.type}</p>
                 </div>
                 <button 
                   onClick={() => setSelectedCampaign(null)}
-                  className="p-2 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition active:scale-95"
+                  className="p-2 bg-slate-50 dark:bg-slate-800 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition active:scale-95"
                 >
-                  <X size={20} />
+                  <X size={16} />
                 </button>
               </div>
 
-              {/* Modal Content */}
-              <div className="p-6">
+                         <div className="p-6">
                 {selectedCampaign.variant ? (
                   <>
-                    <div className="mb-6">
-                      <h3 className="text-sm font-bold text-gray-400 uppercase mb-2">Headline</h3>
-                      <p className="text-lg font-semibold text-gray-900 dark:text-white">{selectedCampaign.variant.headline}</p>
+                    <div className="mb-6 bg-slate-50/50 dark:bg-slate-950/20 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/40">
+                      <h3 className="text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Headline Hooks</h3>
+                      <p className="text-sm font-extrabold text-slate-900 dark:text-white leading-snug">{selectedCampaign.variant.headline}</p>
                     </div>
                     
                     <div className="mb-6">
-                      <h3 className="text-sm font-bold text-gray-400 uppercase mb-2">Post Copy</h3>
-                      <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl border border-gray-100 dark:border-gray-700">
-                        <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">{selectedCampaign.variant.postCopy}</p>
+                      <h3 className="text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Post Copy Draft</h3>
+                      <div className="bg-slate-50/30 dark:bg-slate-950/10 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/40">
+                        <p className="text-slate-650 dark:text-slate-300 whitespace-pre-line text-xs font-semibold leading-relaxed">{selectedCampaign.variant.postCopy}</p>
                       </div>
                     </div>
 
                     <div className="mb-6">
-                      <h3 className="text-sm font-bold text-gray-400 uppercase mb-2">Hashtags</h3>
-                       <div className="flex flex-wrap gap-2">
+                      <h3 className="text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Recommended Hashtags</h3>
+                       <div className="flex flex-wrap gap-1.5">
                          {selectedCampaign.variant.hashtags.map(tag => (
-                           <span key={tag} className="bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 text-xs px-2 py-1 rounded-md font-medium">
+                           <span key={tag} className="bg-slate-100 dark:bg-slate-850 text-slate-600 dark:text-slate-400 text-[10px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider">
                              {tag}
                            </span>
                          ))}
                        </div>
                     </div>
 
-                    <div className="mb-6">
-                      <h3 className="text-sm font-bold text-gray-400 uppercase mb-2">Visual Idea</h3>
-                      <p className="text-blue-600 dark:text-blue-400 italic bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-100 dark:border-blue-900/30">
-                        {selectedCampaign.variant.visualIdea}
+                    <div className="mb-6 bg-blue-50/40 dark:bg-blue-950/10 p-4 rounded-2xl border border-blue-550/5 dark:border-blue-900/15">
+                      <h3 className="text-[10px] font-mono font-bold text-blue-800 dark:text-blue-450 uppercase tracking-wider mb-1.5">Visual Asset Prompt</h3>
+                      <p className="text-slate-500 dark:text-slate-400 text-[11px] leading-relaxed italic font-medium">
+                        "{selectedCampaign.variant.visualIdea}"
                       </p>
                     </div>
 
                     <div>
-                      <h3 className="text-sm font-bold text-gray-400 uppercase mb-2">Engagement Tips</h3>
-                      <ul className="list-disc list-inside text-gray-600 dark:text-gray-400 space-y-1">
+                      <h3 className="text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Lead Strategy Tips</h3>
+                      <ul className="space-y-1 list-none text-slate-500 dark:text-slate-400 text-[11px] font-semibold">
                         {selectedCampaign.variant.engagementTips.map((tip, i) => (
-                          <li key={i}>{tip}</li>
+                          <li key={i} className="flex items-start gap-1.5">
+                            <CheckCircle size={12} className="text-indigo-500 mt-0.5" />
+                            <span>{tip}</span>
+                          </li>
                         ))}
                       </ul>
                     </div>
                   </>
                 ) : (
-                  <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                    <p>No detailed content available for this legacy mock item.</p>
+                  <div className="text-center py-12 text-slate-400 dark:text-slate-500">
+                    <p className="text-sm font-semibold">No detailed content available for this campaign record.</p>
                   </div>
                 )}
               </div>
               
               {/* Modal Footer */}
-              <div className="p-6 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex flex-wrap justify-end gap-3">
-                <button className="px-4 py-2 text-gray-600 dark:text-gray-300 font-medium hover:text-gray-900 dark:hover:text-white mr-auto transition" onClick={() => setSelectedCampaign(null)}>Close</button>
+              <div className="p-6 border-t border-slate-100 dark:border-slate-850 bg-slate-50/50 dark:bg-slate-950/20 flex flex-wrap justify-end gap-3 rounded-b-3xl">
+                <button className="px-4 py-2 text-xs font-bold uppercase text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white mr-auto transition duration-300" onClick={() => setSelectedCampaign(null)}>Close</button>
                 
-                <button onClick={() => handleExportText(selectedCampaign)} className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition active:scale-95 shadow-sm">
-                  <FileText size={18} />
-                  <span className="hidden sm:inline">Text</span>
+                <button onClick={() => handleExportText(selectedCampaign)} className="flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-200/55 dark:border-slate-700 text-slate-600 dark:text-slate-200 rounded-xl text-xs font-bold uppercase transition duration-300 active:scale-95 shadow-sm">
+                  <FileText size={14} />
+                  <span className="hidden sm:inline">Export Text</span>
                 </button>
                 
-                <button onClick={() => handleExportPDF(selectedCampaign)} className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition active:scale-95 shadow-sm">
-                  <Printer size={18} />
+                <button onClick={() => handleExportPDF(selectedCampaign)} className="flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-200/55 dark:border-slate-700 text-slate-600 dark:text-slate-200 rounded-xl text-xs font-bold uppercase transition duration-300 active:scale-95 shadow-sm">
+                  <Printer size={14} />
                   <span className="hidden sm:inline">Print / PDF</span>
                 </button>
 
-                <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition active:scale-95 shadow-sm flex items-center gap-2">
-                  <Copy size={18} />
-                  <span className="hidden sm:inline">Copy</span>
+                <button className="px-4 py-2 bg-blue-650 hover:bg-blue-700 text-white rounded-xl text-xs font-bold uppercase transition duration-300 active:scale-95 shadow-sm flex items-center gap-1.5">
+                  <Copy size={14} />
+                  <span className="hidden sm:inline">Copy draft</span>
                 </button>
               </div>
            </div>
@@ -1655,123 +1641,123 @@ ${campaign.variant.engagementTips.map(t => '- ' + t).join('\n')}
   };
 
   const renderSettings = () => (
-    <div className="max-w-4xl mx-auto py-8 px-4 animate-fade-in-up">
-      <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight mb-2">Settings</h1>
-      <p className="text-gray-500 dark:text-gray-400 mb-8">Customize the app's appearance and language to your liking.</p>
+    <div className="max-w-4xl mx-auto py-12 px-4 animate-fade-in-up">
+      <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">System Settings</h1>
+      <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 mb-8 mt-1">Configure your workspace preferences, localization, and branding typography details.</p>
       
       <div className="space-y-6">
         
         {/* Appearance Section */}
-        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden transition-colors duration-300">
-          <div className="px-8 py-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-             <h2 className="text-lg font-bold text-gray-900 dark:text-white">Appearance</h2>
+        <div className="bg-white dark:bg-[#1E293B]/70 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800/40 overflow-hidden transition-colors duration-300 animate-none">
+          <div className="px-8 py-5 border-b border-slate-100 dark:border-slate-800/30 bg-slate-50/50 dark:bg-slate-950/20">
+             <h2 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Appearance</h2>
           </div>
           
-          <div className="p-8 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+          <div className="p-8 border-b border-slate-100 dark:border-slate-800/20 flex items-center justify-between">
              <div className="flex items-center gap-4">
-               <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-700 dark:text-gray-300">
-                 {settings.darkMode ? <Moon size={20} /> : <Sun size={20} />}
+               <div className="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-500 dark:text-slate-400 border border-slate-200/50 dark:border-slate-700/50">
+                 {settings.darkMode ? <Moon size={16} /> : <Sun size={16} />}
                </div>
-               <span className="font-medium text-gray-900 dark:text-white">Dark Mode</span>
+               <span className="text-sm font-bold text-slate-700 dark:text-white">Dark Interface</span>
              </div>
              <div 
                onClick={() => setSettings(s => ({ ...s, darkMode: !s.darkMode }))}
-               className={`w-14 h-7 rounded-full p-1 cursor-pointer relative transition-colors ${settings.darkMode ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'}`}
+               className={`w-12 h-6.5 rounded-full p-1 cursor-pointer relative transition-colors ${settings.darkMode ? 'bg-blue-650' : 'bg-slate-200 dark:bg-slate-750'}`}
              >
-               <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-300 ${settings.darkMode ? 'translate-x-7' : ''}`}></div>
+               <div className={`w-4.5 h-4.5 bg-white rounded-full shadow transition-transform duration-300 ${settings.darkMode ? 'translate-x-5.5' : ''}`}></div>
              </div>
           </div>
 
           <div className="p-8 flex items-center justify-between">
              <div className="flex items-center gap-4">
-               <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-700 dark:text-gray-300"><Palette size={20} /></div>
+               <div className="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-500 dark:text-slate-400 border border-slate-200/50 dark:border-slate-705 dark:border-slate-700/50"><Palette size={16} /></div>
                <div>
-                 <span className="font-medium text-gray-900 dark:text-white block">Color Theme</span>
-                 <span className="text-sm text-gray-500 dark:text-gray-400">{settings.theme}</span>
+                 <span className="text-sm font-bold text-slate-700 dark:text-white block">Visual Preset Accent</span>
+                 <span className="text-xs text-slate-400 dark:text-slate-500 font-semibold">{settings.theme}</span>
                </div>
              </div>
              <div className="relative">
                 <select 
                   value={settings.theme}
                   onChange={(e) => setSettings(s => ({ ...s, theme: e.target.value }))}
-                  className="appearance-none bg-transparent border-none pr-8 text-right focus:ring-0 cursor-pointer text-gray-900 dark:text-white"
+                  className="appearance-none bg-transparent border-none pr-8 text-right focus:ring-0 cursor-pointer text-xs font-bold uppercase text-slate-600 dark:text-slate-350"
                 >
                   <option value="Warm Sunset">Warm Sunset</option>
                   <option value="Cool Breeze">Cool Breeze</option>
                   <option value="Forest Whisper">Forest Whisper</option>
                   <option value="Lavender Dream">Lavender Dream</option>
                 </select>
-                <ChevronDown size={20} className="text-gray-400 absolute right-0 top-1 pointer-events-none" />
+                <ChevronDown size={14} className="text-slate-400 absolute right-0 top-1 pointer-events-none" />
              </div>
           </div>
         </div>
 
         {/* Language Section */}
-        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden transition-colors duration-300">
-           <div className="px-8 py-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-             <h2 className="text-lg font-bold text-gray-900 dark:text-white">Language & Region</h2>
+        <div className="bg-white dark:bg-[#1E293B]/70 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800/40 overflow-hidden transition-colors duration-300 animate-none">
+           <div className="px-8 py-5 border-b border-slate-100 dark:border-slate-800/30 bg-slate-50/50 dark:bg-slate-950/20">
+             <h2 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Language & Region</h2>
            </div>
            <div className="p-8 flex items-center justify-between">
              <div className="flex items-center gap-4">
-               <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-700 dark:text-gray-300"><Globe size={20} /></div>
+               <div className="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-500 dark:text-slate-400 border border-slate-200/50 dark:border-slate-700/50"><Globe size={16} /></div>
                 <div>
-                 <span className="font-medium text-gray-900 dark:text-white block">Language</span>
-                 <span className="text-sm text-gray-500 dark:text-gray-400">{settings.language}</span>
+                 <span className="text-sm font-bold text-slate-700 dark:text-white block">System Translation</span>
+                 <span className="text-xs text-slate-400 dark:text-slate-500 font-semibold">{settings.language}</span>
                </div>
              </div>
               <div className="relative">
                 <select 
                   value={settings.language}
                   onChange={(e) => setSettings(s => ({ ...s, language: e.target.value }))}
-                  className="appearance-none bg-transparent border-none pr-8 text-right focus:ring-0 cursor-pointer text-gray-900 dark:text-white"
+                  className="appearance-none bg-transparent border-none pr-8 text-right focus:ring-0 cursor-pointer text-xs font-bold uppercase text-slate-600 dark:text-slate-350"
                 >
                   {languageOptions.map(lang => (
                     <option key={lang} value={lang}>{lang}</option>
                   ))}
                 </select>
-                <ChevronDown size={20} className="text-gray-400 absolute right-0 top-1 pointer-events-none" />
+                <ChevronDown size={14} className="text-slate-400 absolute right-0 top-1 pointer-events-none" />
              </div>
           </div>
         </div>
 
         {/* Typography Section */}
-        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden transition-colors duration-300">
-          <div className="px-8 py-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-             <h2 className="text-lg font-bold text-gray-900 dark:text-white">Typography</h2>
+        <div className="bg-white dark:bg-[#1E293B]/70 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800/40 overflow-hidden transition-colors duration-300 animate-none">
+          <div className="px-8 py-5 border-b border-slate-100 dark:border-slate-800/30 bg-slate-50/50 dark:bg-slate-950/20">
+             <h2 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Typography</h2>
            </div>
           <div className="p-8">
              <div className="flex items-center gap-4 mb-6">
-               <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-700 dark:text-gray-300"><TypeIcon size={20} /></div>
+               <div className="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-500 dark:text-slate-400 border border-slate-200/50 dark:border-slate-700/50"><TypeIcon size={16} /></div>
                 <div>
-                 <span className="font-medium text-gray-900 dark:text-white block">Font Settings</span>
-                 <span className="text-sm text-gray-500 dark:text-gray-400">Customize font styles and size.</span>
+                 <span className="text-sm font-bold text-slate-700 dark:text-white block font-sans">Font Settings</span>
+                 <span className="text-xs text-slate-400 dark:text-slate-500 font-semibold">Customize content styles, pairings, and layout margins here.</span>
                </div>
              </div>
 
              {/* Font Family Selectors */}
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 pl-14">
                <div>
-                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Body Font (Sans-Serif)</label>
+                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Body Font (Sans-Serif)</label>
                  <div className="relative">
                    <select 
                      value={settings.bodyFont}
                      onChange={(e) => setSettings(s => ({ ...s, bodyFont: e.target.value }))}
-                     className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
+                     className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-950 dark:text-white text-xs font-bold focus:ring-2 focus:ring-blue-600/10 focus:border-blue-650 outline-none appearance-none"
                    >
                      <option value="'Inter', sans-serif">Inter (Default)</option>
                      <option value="'Roboto', sans-serif">Roboto</option>
                      <option value="'Open Sans', sans-serif">Open Sans</option>
                    </select>
-                   <ChevronDown size={16} className="absolute right-3 top-3 text-gray-400 pointer-events-none" />
+                   <ChevronDown size={14} className="absolute right-3 top-3 text-slate-400 pointer-events-none" />
                  </div>
                </div>
                <div>
-                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Heading Font (Serif/Sans)</label>
+                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Heading Font (Serif/Sans)</label>
                  <div className="relative">
                    <select 
                      value={settings.headingFont}
                      onChange={(e) => setSettings(s => ({ ...s, headingFont: e.target.value }))}
-                     className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
+                     className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-950 dark:text-white text-xs font-bold focus:ring-2 focus:ring-blue-600/10 focus:border-blue-650 outline-none appearance-none"
                    >
                      <option value="'Inter', sans-serif">Inter (Default)</option>
                      <option value="'Playfair Display', serif">Playfair Display</option>
@@ -1779,16 +1765,16 @@ ${campaign.variant.engagementTips.map(t => '- ' + t).join('\n')}
                      <option value="'Roboto', sans-serif">Roboto</option>
                      <option value="'Open Sans', sans-serif">Open Sans</option>
                    </select>
-                   <ChevronDown size={16} className="absolute right-3 top-3 text-gray-400 pointer-events-none" />
+                   <ChevronDown size={14} className="absolute right-3 top-3 text-slate-400 pointer-events-none" />
                  </div>
                </div>
              </div>
 
              {/* Font Size Slider */}
              <div className="pl-14">
-               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Text Size</label>
+               <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Text scale size</label>
                <div className="flex items-center gap-4">
-                 <span className="text-xs text-gray-500 dark:text-gray-400">S</span>
+                 <span className="text-[10px] font-bold text-slate-400">SMALL</span>
                  <div className="flex-1 relative">
                     <input 
                       type="range" 
@@ -1800,10 +1786,10 @@ ${campaign.variant.engagementTips.map(t => '- ' + t).join('\n')}
                         const val = parseInt(e.target.value);
                         setSettings(s => ({ ...s, fontSize: val === 0 ? 'Small' : val === 2 ? 'Large' : 'Medium' }));
                       }}
-                      className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                      className="w-full h-1 bg-slate-200 dark:bg-slate-750 rounded-lg appearance-none cursor-pointer accent-blue-650"
                     />
                  </div>
-                 <span className="text-lg text-gray-500 dark:text-gray-400">L</span>
+                 <span className="text-[10px] font-bold text-slate-400">LARGE</span>
                </div>
              </div>
           </div>
@@ -1816,12 +1802,12 @@ ${campaign.variant.engagementTips.map(t => '- ' + t).join('\n')}
               theme: 'Warm Sunset', 
               language: 'English (US)', 
               fontSize: 'Medium',
-              bodyFont: "'Open Sans', sans-serif",
-              headingFont: "'Merriweather', serif"
+              bodyFont: "'Inter', sans-serif",
+              headingFont: "'Inter', sans-serif"
             })}
-            className="px-6 py-3 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 font-semibold rounded-xl hover:bg-orange-200 dark:hover:bg-orange-900/50 active:scale-95 transition"
+            className="px-5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-350 text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95 transition duration-300"
           >
-            Reset Defaults
+            Reset Settings Defaults
           </button>
         </div>
       </div>
@@ -1829,68 +1815,67 @@ ${campaign.variant.engagementTips.map(t => '- ' + t).join('\n')}
   );
 
   const renderHelp = () => (
-    <div className="max-w-5xl mx-auto py-8 px-4 animate-fade-in-up">
-      <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight mb-2">Help & Information</h1>
-      <p className="text-gray-500 dark:text-gray-400 mb-8">Your guide to creating amazing marketing content for your local business.</p>
+    <div className="max-w-5xl mx-auto py-12 px-4 animate-fade-in-up">
+      <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-2">Help & Center</h1>
+      <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 mb-8 mt-1">Access detailed guides, optimization strategies, and interactive tools.</p>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-700">
-           <div className="h-48 bg-gradient-to-b from-orange-200 to-orange-50 dark:from-orange-900 dark:to-gray-800 relative flex items-center justify-center">
-              <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-              <div className="text-orange-900 dark:text-orange-200 opacity-80 text-center px-6">
-                <h3 className="font-bold text-xl">Generate Marketing Content in Seconds</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-none">
+        <div className="bg-white dark:bg-[#1E293B]/70 rounded-3xl overflow-hidden border border-slate-100 dark:border-slate-800/40 shadow-sm flex flex-col justify-between">
+           <div className="h-48 bg-gradient-to-br from-blue-600/10 via-purple-600/5 to-transparent relative flex items-center justify-center p-6 border-b border-slate-100 dark:border-slate-800/25">
+              <div className="text-slate-700 dark:text-slate-200 text-center">
+                <h3 className="font-extrabold text-lg text-slate-900 dark:text-white leading-snug">Generate enterprise-grade campaign assets instantly</h3>
               </div>
            </div>
-           <div className="p-8">
-             <span className="text-xs font-bold text-orange-500 uppercase mb-2 block">About The App</span>
-             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Generate Marketing Content in Seconds</h3>
-             <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
-               This app is designed for local cafés, restaurants, salons, and small shops to easily generate marketing content, hashtags, and promotional ideas using AI.
+           <div className="p-8 flex-1">
+             <span className="text-[10px] font-mono font-bold text-blue-600 dark:text-blue-450 uppercase mb-2 block tracking-wider">About the platform</span>
+             <h3 className="text-sm font-extrabold text-slate-900 dark:text-white mb-2 leading-snug">Autonomous marketing generation</h3>
+             <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed font-semibold">
+               This intelligent SaaS suite allows local ventures to craft highly customized copy, suggest local visual designs, and run micro-targeted platform campaigns in seconds.
              </p>
            </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-8 border border-gray-100 dark:border-gray-700">
-           <span className="text-xs font-bold text-gray-400 uppercase mb-4 block">Quick Start Guide</span>
-           <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Getting Started is Easy</h3>
-           <p className="text-gray-600 dark:text-gray-300 mb-6">Follow these simple steps to create your first campaign and watch your ideas come to life.</p>
+        <div className="bg-white dark:bg-[#1E293B]/70 rounded-3xl p-8 border border-slate-100 dark:border-slate-800/40 shadow-sm">
+           <span className="text-[10px] font-mono font-bold text-slate-400 uppercase mb-4 block tracking-wider">Campaign Orchestration</span>
+           <h3 className="text-sm font-extrabold text-slate-900 dark:text-white mb-4 leading-snug">Dynamic Pipeline Setup</h3>
+           <p className="text-slate-500 dark:text-slate-400 mb-6 text-xs font-semibold leading-relaxed">Follow these clear actions to coordinate your business profile metrics with AI content drafts.</p>
            
            <div className="space-y-6">
              <div className="flex gap-4">
-               <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0"><Flag size={18} /></div>
+               <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0 border border-slate-200/45 dark:border-slate-800/40"><Flag size={14} /></div>
                <div>
-                 <h4 className="font-bold text-gray-900 dark:text-white">1. Choose Your Goal</h4>
-                 <p className="text-sm text-gray-500 dark:text-gray-400">Decide what you want to achieve, like promoting a new product.</p>
+                 <h4 className="text-xs font-bold text-slate-850 dark:text-white uppercase tracking-tight">1. Tune Business Context</h4>
+                 <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 mt-0.5 leading-relaxed">Input your primary category, visual branding guidelines, and target audience coordinates.</p>
                </div>
              </div>
               <div className="flex gap-4">
-               <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0"><Sparkles size={18} /></div>
+               <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0 border border-slate-200/45 dark:border-slate-800/40"><Sparkles size={14} /></div>
                <div>
-                 <h4 className="font-bold text-gray-900 dark:text-white">2. Generate Ideas</h4>
-                 <p className="text-sm text-gray-500 dark:text-gray-400">Enter your prompt and let our AI create unique content.</p>
+                 <h4 className="text-xs font-bold text-slate-850 dark:text-white uppercase tracking-tight">2. Command Content Studio</h4>
+                 <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 mt-0.5 leading-relaxed">Prompt our advanced multimodal models to write catchy titles, tags, or generate video cues.</p>
                </div>
              </div>
               <div className="flex gap-4">
-               <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400 shrink-0"><Send size={18} /></div>
+               <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 border border-slate-200/45 dark:border-slate-800/40"><Send size={14} /></div>
                <div>
-                 <h4 className="font-bold text-gray-900 dark:text-white">3. Review & Publish</h4>
-                 <p className="text-sm text-gray-500 dark:text-gray-400">Copy, save, or export your campaign and share it with the world.</p>
+                 <h4 className="text-xs font-bold text-slate-850 dark:text-white uppercase tracking-tight">3. Execute & Publish</h4>
+                 <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 mt-0.5 leading-relaxed">Deploy options immediately into PDF brochures, copy copy drafts to clipboards, or schedule feeds.</p>
                </div>
              </div>
            </div>
         </div>
       </div>
       
-      <div className="mt-8 bg-blue-50 dark:bg-blue-900/20 rounded-3xl p-8 text-center border border-blue-100 dark:border-blue-800">
-        <h3 className="text-lg font-bold text-blue-900 dark:text-blue-100 mb-2">Need more help?</h3>
-        <p className="text-blue-700 dark:text-blue-300 mb-6 max-w-2xl mx-auto">
-          Our AI assistant is available 24/7 to answer your questions. Click the chat icon in the bottom right corner to start a conversation.
+      <div className="mt-8 bg-blue-50/40 dark:bg-blue-950/10 rounded-3xl p-8 text-center border border-blue-550/5 dark:border-blue-905 dark:border-blue-900/15">
+        <h3 className="text-sm font-extrabold text-blue-900 dark:text-blue-450 mb-1 leading-snug">Need intermediate consulting help?</h3>
+        <p className="text-slate-500 dark:text-slate-400 text-xs font-semibold leading-relaxed mb-6 max-w-2xl mx-auto">
+          Our advanced language assistant is always online to help write prompts, brainstorm coupon ideas, or debug location map widget results.
         </p>
         <button 
           onClick={() => setIsChatOpen(true)}
-          className="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white px-8 py-3 rounded-xl font-semibold shadow-lg shadow-blue-500/30 transition"
+          className="bg-blue-650 hover:bg-blue-700 text-white text-[10px] font-bold uppercase tracking-wider px-6 py-3 rounded-xl transition duration-300 active:scale-95 shadow-sm shadow-blue-500/10"
         >
-          Open Chat Support
+          Open Assistant Chatbox
         </button>
       </div>
     </div>

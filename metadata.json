@@ -1,5 +1,8 @@
 {
   "name": "AI Marketing Assistant",
   "description": "AI-powered marketing content generator for local small businesses.\n",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
